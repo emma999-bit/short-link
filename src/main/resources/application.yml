@@ -1,0 +1,96 @@
+spring:
+  application:
+    name: short-link
+  datasource:
+    driver-class-name: org.apache.shardingsphere.driver.ShardingSphereDriver
+    url: jdbc:shardingsphere:classpath:sharding.yaml
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+    open-in-view: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        jdbc:
+          batch_size: 50
+  data:
+    redis:
+      cluster:
+        nodes:
+          - 127.0.0.1:7001
+          - 127.0.0.1:7002
+          - 127.0.0.1:7003
+          - 127.0.0.1:7004
+          - 127.0.0.1:7005
+          - 127.0.0.1:7006
+        max-redirects: 3
+      timeout: 3000ms
+      lettuce:
+        cluster:
+          refresh:
+            adaptive: true
+            period: 30s
+        pool:
+          max-active: 50
+          max-idle: 20
+          min-idle: 5
+          max-wait: 2000ms
+
+short-link:
+  sharding:
+    database-count: 2     # production: 32
+    table-count: 4        # production: 256
+  bloom-filter:
+    expected-insertions: 1000000
+    false-probability: 0.001
+    time-slice-hours: 24
+    max-slices: 7
+    stream-key: bloom:sync:stream
+    stream-max-len: 100000
+  snowflake:
+    code-length: 8
+    datacenter-id: 1
+  cache:
+    local-expire-seconds: 300
+    redis-expire-seconds: 3600
+    local-max-size: 10000
+    stream-key: cache:sync:stream
+    stream-max-len: 100000
+  machine:
+    redis-key: machine:id:registry
+    lease-seconds: 30
+    max-machine-id: 1023
+  lock:
+    wait-seconds: 3
+    lease-seconds: 10
+    warn-threshold-ms: 1000
+  access-count:
+    flush-threshold: 100
+  sentinel:
+    create-qps: 1000
+    redirect-qps: 5000
+
+server:
+  port: 8080
+  compression:
+    enabled: true
+    min-response-size: 1024
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: ${spring.application.name}
+
+logging:
+  level:
+    com.shortlink: INFO
+    org.apache.shardingsphere: WARN
+  config: classpath:logback-spring.xml

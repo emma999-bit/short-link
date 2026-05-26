@@ -1,0 +1,58 @@
+databaseName: short_link_sharding
+
+dataSources:
+  ds_0:
+    dataSourceClassName: com.zaxxer.hikari.HikariDataSource
+    driverClassName: com.mysql.cj.jdbc.Driver
+    jdbcUrl: jdbc:mysql://localhost:3306/short_link_0?useUnicode=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: root
+    password: root123
+    connectionTimeout: 30000
+    idleTimeout: 600000
+    maxLifetime: 1800000
+    maximumPoolSize: 50
+    minimumIdle: 10
+  ds_1:
+    dataSourceClassName: com.zaxxer.hikari.HikariDataSource
+    driverClassName: com.mysql.cj.jdbc.Driver
+    jdbcUrl: jdbc:mysql://localhost:3307/short_link_1?useUnicode=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: root
+    password: root123
+    connectionTimeout: 30000
+    idleTimeout: 600000
+    maxLifetime: 1800000
+    maximumPoolSize: 50
+    minimumIdle: 10
+
+rules:
+  - !SHARDING
+    tables:
+      short_url_mapping:
+        actualDataNodes: ds_${0..1}.short_url_mapping_${0..3}
+        databaseStrategy:
+          standard:
+            shardingColumn: short_code
+            shardingAlgorithmName: database-hash
+        tableStrategy:
+          standard:
+            shardingColumn: short_code
+            shardingAlgorithmName: table-hash
+        keyGenerateStrategy:
+          column: id
+          keyGeneratorName: snowflake
+    shardingAlgorithms:
+      database-hash:
+        type: INLINE
+        props:
+          algorithm-expression: "ds_${((short_code.hashCode() & 0x7fffffff) >> 2) % 2}"
+      table-hash:
+        type: INLINE
+        props:
+          algorithm-expression: "short_url_mapping_${(short_code.hashCode() & 0x7fffffff) % 4}"
+    keyGenerators:
+      snowflake:
+        type: SNOWFLAKE
+
+props:
+  sql-show: false
+  query-with-cipher-column: false
